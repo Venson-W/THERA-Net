@@ -1,26 +1,19 @@
-"""Train/validate source-family THERA-Net without altering prior results/.
-
-This script does not run a spatial rupture solver. It supplies actual trained
-neural material parameters for an independently executed solver comparison.
-"""
+"""Train and validate THERA-Net on a synthetic material family."""
 from __future__ import annotations
 import argparse
 import hashlib
 import json
 from pathlib import Path
 import platform
-import shutil
 import sys
 import time
 import numpy as np
 
-LOCAL_DEPS = Path(__file__).resolve().parents[2]/"research_notes"/"python_deps"
-if LOCAL_DEPS.exists(): sys.path.insert(0, str(LOCAL_DEPS))
 import scipy
 from scipy.optimize import minimize
-from fault_thera import (THERANet, traction, aging_update, initial_state,
+from model import (THERANet, traction, aging_update, initial_state,
                          LOWER, UPPER, PARAMETER_NAMES)
-from source_family_thera import (DEFAULT_OUTPUT, material_descriptor, source_truth,
+from material import (DEFAULT_OUTPUT, material_descriptor, source_truth,
                                  source_family_parameters, export_source_field)
 
 
@@ -121,14 +114,14 @@ def main():
         model,history,metadata = fit(data["train"],data["validation"],seed,args.maxiter)
         metadata["metrics"] = {name:evaluate(model,values) for name,values in data.items()}
         models.append(model); runs.append(metadata)
-        model.save(output/f"source_model_seed_{seed}.npz")
+        model.save(output/f"model_seed_{seed}.npz")
         np.savetxt(output/f"loss_seed_{seed}.csv",history,delimiter=",",comments="",
                    header="iteration,train_joint_loss,validation_joint_loss")
         print(json.dumps(metadata),flush=True)
     selected_index = int(np.argmin([run["selected_validation_loss"] for run in runs]))
     selected = models[selected_index]
     selected_seed = runs[selected_index]["seed"]
-    selected.save(output/"source_model.npz")
+    selected.save(output/"model.npz")
     dense_a = np.linspace(.006,.018,4001)
     pred = source_family_parameters(selected,dense_a)
     truth = source_truth(dense_a)
@@ -160,10 +153,10 @@ def main():
     reloaded = np.load(output/"example_coefficients.npy")
     if not np.array_equal(exported,reloaded): raise AssertionError("field export/load mismatch")
     # Reloaded checkpoint must reproduce all held-out traction metrics exactly.
-    loaded = THERANet.load(output/"source_model.npz")
+    loaded = THERANet.load(output/"model.npz")
     checkpoint_error = float(np.max(np.abs(source_family_parameters(loaded,dense_a)-pred)))
     if checkpoint_error != 0: raise AssertionError("checkpoint round trip changed neural output")
-    digest = hashlib.sha256((output/"source_model.npz").read_bytes()).hexdigest()
+    digest = hashlib.sha256((output/"model.npz").read_bytes()).hexdigest()
     metrics = {"runs":runs,"selected_seed":selected_seed,
                "selected_model_sha256":digest,"selected_test_metrics":evaluate(selected,data["test"]),
                "dense_material_audit":dense_metrics,"source_initial_state_audit":initial_metrics,
@@ -172,7 +165,7 @@ def main():
                "source_case_endpoint_coefficients":endpoints_pred.tolist()}
     (output/"metrics.json").write_text(json.dumps(metrics,indent=2),encoding="utf-8")
     print(json.dumps(metrics,indent=2),flush=True)
-    print(f"Selected seed {selected_seed}, saved {output/'source_model.npz'}",flush=True)
+    print(f"Selected seed {selected_seed}, saved {output/'model.npz'}",flush=True)
 
 
 if __name__ == "__main__": main()

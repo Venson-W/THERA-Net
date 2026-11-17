@@ -1,5 +1,0 @@
-numpy
-matplotlib
-pdfplumber
-pypdf
-pypdfium2

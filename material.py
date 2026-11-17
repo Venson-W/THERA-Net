@@ -1,4 +1,4 @@
-"""Neural material-family closure for the supplied paper's three rupture cases.
+"""Synthetic material family and neural parameter predictions.
 
 The input is the prescribed direct-effect coefficient a_source as a fixed material
 descriptor. All four effective coefficients are outputs of actual trained weights.
@@ -7,11 +7,11 @@ The current velocity and state are deliberately excluded from the network inputs
 """
 from pathlib import Path
 import numpy as np
-from fault_thera import THERANet
+from model import THERANet
 
 A_MIN, A_MAX = 0.006, 0.018
 A_CENTER, A_HALF_RANGE = 0.012, 0.006
-DEFAULT_OUTPUT = Path(__file__).parent / "results_rupture" / "source_family"
+DEFAULT_OUTPUT = Path(__file__).parent / "results"
 
 
 def material_descriptor(a_source):
@@ -30,7 +30,7 @@ def source_truth(a_source):
 
 def load_source_model(path=None):
     """Load the checkpoint selected using whole-material-group validation only."""
-    return THERANet.load(DEFAULT_OUTPUT / "source_model.npz" if path is None else path)
+    return THERANet.load(DEFAULT_OUTPUT / "model.npz" if path is None else path)
 
 
 def source_family_parameters(model, a_field):
