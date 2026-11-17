@@ -109,6 +109,22 @@ def aging_update(theta, velocity, dt, length, jacobian=False):
     return result, derivative
 
 
+def steady_traction(speed, pressure, parameters):
+    """Positive steady sliding: theta_ss = Dc/speed."""
+    speed = np.asarray(speed)
+    if not np.isfinite(speed).all() or np.any(speed <= 0):
+        raise ValueError("finite positive steady speed required")
+    return traction(speed, np.asarray(parameters)[..., 2]/speed, pressure, parameters)
+
+
+def steady_log_tangent(speed, pressure, parameters):
+    """d tau_ss / d log(speed); a < b gives steady velocity weakening."""
+    steady_traction(speed, pressure, parameters)  # Validate the constitutive domain.
+    a, b, length, _ = np.moveaxis(np.asarray(parameters), -1, 0)
+    inverse, _, _, _ = _log_rsf(speed, length/np.asarray(speed), parameters)
+    return np.asarray(pressure)*(a-b)*np.tanh(inverse)
+
+
 def initial_state(initial_traction, initial_velocity, pressure, parameters):
     """Invert regularized RSF at positive source initial velocity and traction.
 

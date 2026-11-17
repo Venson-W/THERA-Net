@@ -1,0 +1,15 @@
+cmake_minimum_required(VERSION 3.10)
+project(thera_rupture LANGUAGES CXX)
+
+# UGUCA is installed separately; uguca_DIR selects its CMake configuration.
+find_package(uguca CONFIG REQUIRED)
+find_package(MPI REQUIRED COMPONENTS CXX)
+foreach(target rupture test_law)
+  add_executable(${target} ${target}.cc)
+  target_compile_features(${target} PRIVATE cxx_std_17)
+  target_compile_options(${target} PRIVATE -Wall -Wextra -pedantic)
+  target_include_directories(${target} PRIVATE ${UGUCA_INCLUDE_DIRS})
+  target_link_libraries(${target} PRIVATE uguca MPI::MPI_CXX)
+endforeach()
+enable_testing()
+add_test(NAME impedance_roots COMMAND test_law)
