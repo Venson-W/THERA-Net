@@ -5,7 +5,7 @@ import numpy as np
 work=Path(__file__).resolve().parents[1]
 root=Path('/var/tmp/titan-barrier-20261113')
 folder=root/'instrumentation_check';folder.mkdir(exist_ok=True)
-exe=folder/'rupture_driver';shutil.copy2(work/'research_notes/pinet-rupture-build/rupture_driver',exe)
+exe=folder/'rupture_driver';shutil.copy2(work/'research_notes/thera-rupture-build/rupture_driver',exe)
 name='w0_a0p018_N180_reference_dt0p01_T15_pc1'
 fields=root/'runs'/name/'fields.bin'
 env=os.environ.copy();env['LD_LIBRARY_PATH']=str(root);env['OMP_NUM_THREADS']='1'
@@ -40,5 +40,5 @@ record.update(initial_bitwise_comparison='Not identical; numerical differences q
     final_field_relative_L2=relative.tolist(),final_field_max_absolute=absolute.tolist(),
     snapshot_max_absolute_relative_jump=snapshot,
     acceptance='Each final field relative L2 <1e-10; arrivals <1e-8 s; peak/snapshot rates <1e-8 m/s; slip <1e-10 m; identical arrival masks.')
-dest=work/'PiNet-main/Fault mechanics/results_barrier/instrumentation_verification.json'
+dest=work/'src/fault_mechanics/results_barrier/instrumentation_verification.json'
 dest.write_text(json.dumps(record,indent=2)+'\n');print(json.dumps(record,indent=2))

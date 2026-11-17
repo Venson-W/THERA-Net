@@ -1,3 +1,6 @@
+Paths and run labels below use the current release naming. Numerical records
+and timings describe the original verification runs.
+
 UGUCA full-dynamic solver build and verification, 2026-11-12
 
 Upstream source: https://gitlab.com/uguca/uguca.git
@@ -28,8 +31,8 @@ Two platform setup adjustments were needed before this test result:
 No test assertions were weakened or changed.
 
 Separate adapter build:
-cmake -S "/mnt/e/Work/Research/PingsCode/PiNet-main/Fault mechanics/rupture_solver" -B /mnt/e/Work/Research/PingsCode/research_notes/pinet-rupture-build -Duguca_DIR=/mnt/e/Work/Research/PingsCode/research_notes/uguca-build -DCMAKE_BUILD_TYPE=Release
-cmake --build /mnt/e/Work/Research/PingsCode/research_notes/pinet-rupture-build --parallel 4
+cmake -S "/mnt/e/Work/Research/PingsCode/src/fault_mechanics/rupture_solver" -B /mnt/e/Work/Research/PingsCode/research_notes/thera-rupture-build -Duguca_DIR=/mnt/e/Work/Research/PingsCode/research_notes/uguca-build -DCMAKE_BUILD_TYPE=Release
+cmake --build /mnt/e/Work/Research/PingsCode/research_notes/thera-rupture-build --parallel 4
 The adapter requires C++17 and links the separately built upstream libuguca.so.
 
 Initial independent solver-equivalence check:
@@ -53,8 +56,8 @@ through /mnt/e caused all MPI rank-zero processes to block in p9_client_rpc on
 51-byte coordinate writes; other MPI ranks spun in wait. This was not a solver
 iteration failure and was not memory exhaustion (only 1.7/31 GiB used).
 Only the three identified research mpirun processes were stopped. Production
-uses Linux ext4 at /var/tmp/pinet-rupture-20261112; /var/tmp survives WSL shutdown.
-The reusable entry point is PiNet-main/Fault mechanics/rupture_solver/run_rupture_ext4.py.
+uses Linux ext4 at /var/tmp/thera-rupture-20261112; /var/tmp survives WSL shutdown.
+The reusable entry point is src/fault_mechanics/rupture_solver/run_rupture_ext4.py.
 It stages executable, shared library, kernels, and input fields; runs two jobs
 of eight MPI processes each; and serially copies completed outputs back to
 results_rupture/runs. Each run records command, input and executable SHA256,
@@ -96,19 +99,19 @@ Eight MPI processes per run; at most two simultaneous runs.
 No remaining research MPI job from this batch is running.
 
 Run name | process wall seconds | exit code
-uniform_N360_pinet | 101.425 | 0
+uniform_N360_thera | 101.425 | 0
 uniform_N360_reference | 105.560 | 0
 heterogeneous_D16_N360_reference | 104.270 | 0
-heterogeneous_D16_N360_pinet | 105.559 | 0
+heterogeneous_D16_N360_thera | 105.559 | 0
 unseen_D13_N360_reference | 114.390 | 0
-unseen_D13_N360_pinet | 110.401 | 0
+unseen_D13_N360_thera | 110.401 | 0
 uniform_N180_reference | 13.375 | 0
-uniform_N180_pinet | 13.218 | 0
+uniform_N180_thera | 13.218 | 0
 heterogeneous_D16_N180_reference | 11.450 | 0
-heterogeneous_D16_N180_pinet | 11.438 | 0
+heterogeneous_D16_N180_thera | 11.438 | 0
 unseen_D13_N180_reference | 11.715 | 0
-unseen_D13_N180_pinet | 12.943 | 0
-uniform_N720_pinet | 787.472 | 0
+unseen_D13_N180_thera | 12.943 | 0
+uniform_N720_thera | 787.472 | 0
 uniform_N720_reference | 801.517 | 0
 uniform_N360_reference_dt05 | 177.033 | 0
 
@@ -117,7 +120,7 @@ The 12 principal runs comprise all three physical configurations on 400 m and
 uniform-case runs use 100 m and dt=0.005 s. The final uniform reference-only
 control uses 200 m and dt=0.005 s to separate temporal and spatial sensitivity.
 The complete outputs remain in the workspace; ext4 staging is retained for
-recovery at /var/tmp/pinet-rupture-20261112. No cleanup deletion was performed.
+recovery at /var/tmp/thera-rupture-20261112. No cleanup deletion was performed.
 
 Numerical near-rest qualification:
 The nonlinear solve uses a traction residual tolerance of 1e-7+1e-13*abs(S) Pa.

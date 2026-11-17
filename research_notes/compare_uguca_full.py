@@ -30,6 +30,6 @@ report['note']='Relative slip and speed multiply native top-face output by 2. Fl
 for field,value in report.items():
     if isinstance(value,dict): print(field, {k:v for k,v in value.items() if k!='snapshots'})
 
-for mode in ('reference','pinet'):
-    data=np.genfromtxt(root.parent/'PiNet-main/Fault mechanics/results_rupture/runs'/f'uniform_N360_{mode}'/'solution_diagnostics.csv',delimiter=',',names=True)
+for mode in ('reference','thera'):
+    data=np.genfromtxt(root.parent/'src/fault_mechanics/results_rupture/runs'/f'uniform_N360_{mode}'/'solution_diagnostics.csv',delimiter=',',names=True)
     print('uniform_N360_'+mode,{n:[float(data[n].min()),float(data[n].max())] for n in data.dtype.names})

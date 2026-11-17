@@ -1,6 +1,6 @@
 from pathlib import Path
 import sys,json,argparse
-fm=Path('PiNet-main/Fault mechanics').resolve()
+fm=Path('src/fault_mechanics').resolve()
 sys.path.insert(0,str(fm))
 from barrier_cases import prepare,case_name
 p=argparse.ArgumentParser();p.add_argument('batch')
