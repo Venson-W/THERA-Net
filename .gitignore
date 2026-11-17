@@ -1,0 +1,24 @@
+__pycache__/
+*.py[cod]
+.mplconfig/
+.venv/
+IJSS_PiNet_Rupture/data/
+PiNet-main/Fault mechanics/results_rupture/
+PiNet-main/Fault mechanics/results_barrier/
+research_notes/uguca/
+research_notes/uguca-build/
+research_notes/pinet-rupture-build/
+research_notes/python_deps/
+PiNet-main/Fault mechanics/results/
+PiNet-main/Fault mechanics/results_rupture/inputs/
+PiNet-main/Fault mechanics/results_rupture/runs/
+PiNet-main/Fault mechanics/results_rupture/compact/
+PiNet-main/Fault mechanics/results_barrier/inputs/
+PiNet-main/Fault mechanics/results_barrier/runs/
+IJSS_PiNet_Rupture/figures/*.pdf
+IJSS_PiNet_Rupture/figures/*.aux
+IJSS_PiNet_Rupture/figures/*.log
+IJSS_PiNet_Rupture/figures/*.txt
+IJSS_PiNet_Rupture/figures/*.json
+IJSS_PiNet_Rupture/figures/qa/
+IJSS_PiNet_Rupture/*.tex

@@ -1,0 +1,129 @@
+UGUCA full-dynamic solver build and verification, 2026-11-12
+
+Upstream source: https://gitlab.com/uguca/uguca.git
+Branch: stable
+Commit: ea1c4c252f8cb119f48602e0b1dba885851c1764
+License: LGPL-3.0-or-later (upstream COPYING and COPYING.LESSER retained).
+Workspace source: research_notes/uguca
+No numerical or constitutive upstream source modifications were made.
+
+Environment: Windows host, Ubuntu under WSL2, 32 logical processors, 31 GiB RAM.
+Actual tool versions: CMake 3.15.7, GNU C++ 9.5.0, OpenMPI 4.1.6. FFTW3, BLAS, OpenMPI
+headers/libraries were available before this work. MPI discovery reports version
+3.1 (MPI standard version, not the OpenMPI package version).
+
+Build command (inside WSL):
+cmake -S /mnt/e/Work/Research/PingsCode/research_notes/uguca -B /mnt/e/Work/Research/PingsCode/research_notes/uguca-build -DCMAKE_BUILD_TYPE=Release -DUCA_BENCHMARKS=ON -DUCA_TEST=ON -DUCA_EXAMPLES=ON -DUCA_USE_MPI=ON -DUCA_USE_BLAS=ON
+cmake --build /mnt/e/Work/Research/PingsCode/research_notes/uguca-build --parallel 12
+
+Tests:
+cd /mnt/e/Work/Research/PingsCode/research_notes/uguca-build
+ctest --output-on-failure -j 4
+Result: all 32 tests passed, including MPI variants; wall time 2.80 seconds.
+Two platform setup adjustments were needed before this test result:
+1. Normalize CRLF to LF in generated uguca-build/test/*.sh copies only.
+2. The kernel-collection test hardcodes ../../kernels. Four unmodified reference
+   kernel files were copied from uguca/kernels to research_notes/kernels to meet
+   this path expectation in the sibling, out-of-source build layout.
+No test assertions were weakened or changed.
+
+Separate adapter build:
+cmake -S "/mnt/e/Work/Research/PingsCode/PiNet-main/Fault mechanics/rupture_solver" -B /mnt/e/Work/Research/PingsCode/research_notes/pinet-rupture-build -Duguca_DIR=/mnt/e/Work/Research/PingsCode/research_notes/uguca-build -DCMAKE_BUILD_TYPE=Release
+cmake --build /mnt/e/Work/Research/PingsCode/research_notes/pinet-rupture-build --parallel 4
+The adapter requires C++17 and links the separately built upstream libuguca.so.
+
+Initial independent solver-equivalence check:
+Native TPV101: 180x90 nodes, domain 72x36 km, dx=400 m, dt approximately
+0.02 s (-f 0.1732), T=2 s, one predictor/corrector iteration, 8 MPI processes.
+Adapter: identical physical parameters/fields, dt=0.02 s, T=2 s.
+Data and scripts: research_notes/uguca-smoke/.
+At common snapshot times 0.6, 1.2 and 1.8 s, resolved float32 peak fields agree.
+At t=1.8 s, max absolute relative-slip-speed difference is 1.70e-12 m/s and
+max slip difference is 3.42e-13 m; relative L2 differences are 1.24e-13 and
+1.44e-13, respectively. These are dump-precision comparisons, not claims of
+exact mathematical equivalence at arbitrary initial states or timestep sizes.
+Native wall time: 6.77 s. Adapter stepping: 0.799487 s; total process: 16.53 s.
+The adapter avoids advancing the supplied state during initialization; the
+native implementation does a tiny state update during init(true). For these
+large source initial state values its effect is below resolved output precision.
+
+Runtime filesystem correction:
+UGUCA flushes each coordinate line individually. Concurrent runs writing directly
+through /mnt/e caused all MPI rank-zero processes to block in p9_client_rpc on
+51-byte coordinate writes; other MPI ranks spun in wait. This was not a solver
+iteration failure and was not memory exhaustion (only 1.7/31 GiB used).
+Only the three identified research mpirun processes were stopped. Production
+uses Linux ext4 at /var/tmp/pinet-rupture-20261112; /var/tmp survives WSL shutdown.
+The reusable entry point is PiNet-main/Fault mechanics/rupture_solver/run_rupture_ext4.py.
+It stages executable, shared library, kernels, and input fields; runs two jobs
+of eight MPI processes each; and serially copies completed outputs back to
+results_rupture/runs. Each run records command, input and executable SHA256,
+return code, wall time, and MPI process count in execution_record.json.
+
+Scientific scope:
+This is the full causal elastodynamic spectral boundary-integral implementation,
+including its time-history kernels, not a quasidynamic radiation-damping model.
+The TPV101 symmetric shear interface enforces zero opening and transverse slip;
+it solves a scalar strike-slip law on a two-dimensional fault surface in 3D
+elastic space. Dumped top_disp_0 and top_velo_0 must be multiplied by two for
+relative fault displacement and velocity. Arrival extraction must explicitly
+mask sites which never cross threshold. Native helper argmax alone does not.
+Production driver tracks first crossing every integration step at 1e-3 m/s and
+0.5 m/s and saves the unruptured sentinel -1. A mesh refinement study is required
+before asserting resolved rupture-front accuracy; matching NN/reference on one
+coarse grid does not establish continuum convergence or independent validation.
+
+Final full-duration adapter verification (final init(false), no initial aging):
+26 common snapshots through 15 s on the 180x90 grid. Maximum relative L2
+errors over positive common times: speed 6.3025e-9 and slip 4.6051e-9.
+Maximum absolute differences: speed 2.3842e-7 m/s and slip 1.8626e-9 m,
+consistent with float32 dump rounding. At 15 s: 1.9516e-12 m/s and
+1.7621e-12 m absolute differences. See uguca_full_comparison.json.
+Native full-run process time on ext4: 19.30 s.
+Final driver executable SHA256:
+10978ebd8d13bba1171d02b24a4a228d67756d50ad554c35520721d21927579d
+Final driver source SHA256:
+0e90a02e6600b6f0e12e1766794090b4f5c37581c6edb219fa066ec4695747fd
+Final adapter-header SHA256:
+8cecf1a48be221169259d9e2389bc90e2ed9746693ab5d5bf5eeabcfd23dedc3
+
+FINAL PRODUCTION STATUS
+All 15 requested 15-second full-dynamic runs completed with exit code zero.
+All results were published to results_rupture/runs; batch_manifest.json and
+each execution_record.json preserve arguments, input/executable hashes and
+measured process runtime. All used the same final executable SHA256 above.
+Eight MPI processes per run; at most two simultaneous runs.
+No remaining research MPI job from this batch is running.
+
+Run name | process wall seconds | exit code
+uniform_N360_pinet | 101.425 | 0
+uniform_N360_reference | 105.560 | 0
+heterogeneous_D16_N360_reference | 104.270 | 0
+heterogeneous_D16_N360_pinet | 105.559 | 0
+unseen_D13_N360_reference | 114.390 | 0
+unseen_D13_N360_pinet | 110.401 | 0
+uniform_N180_reference | 13.375 | 0
+uniform_N180_pinet | 13.218 | 0
+heterogeneous_D16_N180_reference | 11.450 | 0
+heterogeneous_D16_N180_pinet | 11.438 | 0
+unseen_D13_N180_reference | 11.715 | 0
+unseen_D13_N180_pinet | 12.943 | 0
+uniform_N720_pinet | 787.472 | 0
+uniform_N720_reference | 801.517 | 0
+uniform_N360_reference_dt05 | 177.033 | 0
+
+The 12 principal runs comprise all three physical configurations on 400 m and
+200 m grids, each with analytical-reference and learned coefficients. Two
+uniform-case runs use 100 m and dt=0.005 s. The final uniform reference-only
+control uses 200 m and dt=0.005 s to separate temporal and spatial sensitivity.
+The complete outputs remain in the workspace; ext4 staging is retained for
+recovery at /var/tmp/pinet-rupture-20261112. No cleanup deletion was performed.
+
+Numerical near-rest qualification:
+The nonlinear solve uses a traction residual tolerance of 1e-7+1e-13*abs(S) Pa.
+The reconstructed near-rest speed consequently has limited relative accuracy,
+even though the absolute error is tiny. At t=0 on the principal grids, actual
+reference speeds are approximately (0.838--0.854)e-12 m/s and neural speeds
+(0.996--1.005)e-12 m/s. The minimum computed local power can be slightly
+negative from scalar-solve tolerance plus cancellation; no clipping is applied.
+This does not establish a strict floating-point global SBI energy certificate.
